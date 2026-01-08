@@ -4,7 +4,7 @@
 using namespace frameflow;
 
 static SDL_FRect to_sdl(const frameflow::Rect& r) {
-    return SDL_FRect{ r.origin.x, r.origin.y, r.size.width, r.size.height };
+    return SDL_FRect{ r.origin.x, r.origin.y, r.size.x, r.size.y };
 }
 
 static void DrawBorders(SDL_Renderer *renderer, System&canvas, NodeId node_id) {
@@ -49,8 +49,7 @@ int main(int, char**) {
     }
 
     System canvas;
-    CenterData center_data;
-    NodeId root_id = add_center(canvas, NullNode, center_data);
+    NodeId root_id = add_center(canvas, NullNode);
     frameflow::Rect rect{
         0.0f,
         0.0f,
@@ -59,9 +58,19 @@ int main(int, char**) {
     };
     get_node(canvas, root_id).bounds = rect;
 
-    NodeId child_node_id = add_generic(canvas, root_id);
-    auto &child_node = get_node(canvas, child_node_id);
-    child_node.bounds = {{0, 0}, {100, 300}};
+    NodeId child_node_id;
+    {
+        child_node_id = add_flow(canvas, root_id, FlowData{Direction::Horizontal});
+        auto &child_node = get_node(canvas, child_node_id);
+        child_node.minimum_size = {100, 233};
+    }
+
+
+    for (int i = 0; i < 100; i++) {
+        NodeId c = add_generic(canvas, child_node_id);
+        auto &c_node = get_node(canvas, c);
+        c_node.minimum_size = {40, 40};
+    }
 
     bool running = true;
     while (running) {
