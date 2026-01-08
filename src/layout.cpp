@@ -63,7 +63,7 @@ static void layout_flow(System& sys, const Node& node, const FlowData& data) {
     float2 offset = node.bounds.origin;
     float line_height = 0.f;
 
-    for (auto child_id : node.children) {
+    for (const auto child_id : node.children) {
         Node& child = get_node(sys, child_id);
         child.bounds.size = child.minimum_size;
 
@@ -94,7 +94,7 @@ static void layout_flow(System& sys, const Node& node, const FlowData& data) {
 }
 
 
-NodeId add_generic(System& sys, NodeId parent) {
+NodeId add_generic(System& sys, const NodeId parent) {
     // 1. Add component data
     // NA
 
@@ -115,7 +115,7 @@ NodeId add_generic(System& sys, NodeId parent) {
     return id;
 }
 
-NodeId add_center(System& sys, NodeId parent) {
+NodeId add_center(System& sys, const NodeId parent) {
     // 1. Add component data
 
     // 2. Add node
@@ -135,7 +135,7 @@ NodeId add_center(System& sys, NodeId parent) {
     return id;
 }
 
-NodeId add_box(System& sys, NodeId parent, const BoxData& data) {
+NodeId add_box(System& sys, const NodeId parent, const BoxData& data) {
     // 1. Add component data
     const size_t comp_idx = sys.components.boxes.size();
     sys.components.boxes.push_back(data);
@@ -180,8 +180,8 @@ NodeId add_flow(System& sys, const NodeId parent, const FlowData& data) {
 }
 
 
-void compute_layout(System& sys, NodeId node_id) {
-    Node& node = sys.nodes[node_id];
+void compute_layout(System& sys, const NodeId node_id) {
+    const Node& node = sys.nodes[node_id];
     switch (node.type) {
         case NodeType::Generic: layout_generic(); break;
         case NodeType::Center:  
@@ -193,11 +193,11 @@ void compute_layout(System& sys, NodeId node_id) {
         default: break;
     }
 
-    for (auto child_id : node.children)
+    for (const auto child_id : node.children)
         compute_layout(sys, child_id);
 }
 
-Node& get_node(System& sys, NodeId id) {
+Node& get_node(System& sys, const NodeId id) {
     return sys.nodes[id];
 }
 
