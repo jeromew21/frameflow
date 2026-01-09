@@ -100,7 +100,7 @@ int main(int, char **) {
 
     // Center child
     const NodeId center_id = add_center(canvas, root_id);
-    get_node(canvas, center_id).minimum_size = {500*2, 400*2};
+    get_node(canvas, center_id).anchors = {0, 0, 1, 1};
 
     // Horizontal box
     const NodeId hbox_id = add_box(canvas, center_id, BoxData{Direction::Horizontal, Align::SpaceBetween});
