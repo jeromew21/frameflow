@@ -50,6 +50,7 @@ namespace frameflow {
 
             // Start with minimum size
             float2 size = child.minimum_size;
+            // how to get size to be ratio of parent?
 
             // Apply expand
             if (child.expand.x > 0.f) size.x = node.bounds.size.x;
