@@ -116,21 +116,23 @@ namespace frameflow {
 
     // A tree root, all ancestors of root are have relative positions to this System
     // Analogous to CanvasLayer in Godot
+    // This is designed to have multiple root nodes if you wish.
+    // In your engine, you can abstract over this to have only one root.
     struct System {
         std::vector<Node> nodes;
         Components components;
         std::vector<NodeId> children;
     };
 
-    NodeId add_center(System &sys, NodeId parent);
+    NodeId add_center(System *sys, NodeId parent);
 
-    NodeId add_generic(System &sys, NodeId parent);
+    NodeId add_generic(System *sys, NodeId parent);
 
-    NodeId add_box(System &sys, NodeId parent, const BoxData &data);
+    NodeId add_box(System *sys, NodeId parent, const BoxData &data);
 
-    NodeId add_flow(System &sys, NodeId parent, const FlowData &data);
+    NodeId add_flow(System *sys, NodeId parent, const FlowData &data);
 
-    Node &get_node(System &sys, NodeId id);
+    Node *get_node(System *sys, NodeId id);
 
-    void compute_layout(System &sys, NodeId node_id);
+    void compute_layout(System *sys, NodeId node_id);
 } // namespace frameflow

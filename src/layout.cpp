@@ -20,9 +20,9 @@ namespace frameflow {
         if (y1 > y0) child.bounds.origin.y = y0, child.bounds.size.y = y1 - y0;
     }
 
-    static void layout_generic(System &sys, const Node &node) {
+    static void layout_generic(System *sys, const Node &node) {
         for (NodeId child_id: node.children) {
-            Node &child = get_node(sys, child_id);
+            Node &child = *get_node(sys, child_id);
 
             // Compute anchors
             resolve_anchors(child, node);
@@ -40,11 +40,11 @@ namespace frameflow {
     }
 
 
-    static void layout_center(System &sys, const Node &node) {
+    static void layout_center(System *sys, const Node &node) {
         if (node.children.empty()) return;
 
         for (NodeId child_id: node.children) {
-            Node &child = get_node(sys, child_id);
+            Node &child = *get_node(sys, child_id);
 
             resolve_anchors(child, node);
 
@@ -67,14 +67,14 @@ namespace frameflow {
     }
 
 
-    static void layout_box(System &sys, const Node &node, const BoxData &data) {
+    static void layout_box(System *sys, const Node &node, const BoxData &data) {
         if (node.children.empty()) return;
 
         // Precompute total fixed size & total stretch
         float total_main = 0.f;
         float total_stretch = 0.f;
         for (NodeId child_id: node.children) {
-            Node &c = get_node(sys, child_id);
+            Node &c = *get_node(sys, child_id);
             total_main += (data.direction == Direction::Horizontal ? c.minimum_size.x : c.minimum_size.y);
             if ((data.direction == Direction::Horizontal ? c.expand.x : c.expand.y) > 0.f)
                 total_stretch += (data.direction == Direction::Horizontal ? c.stretch.x : c.stretch.y);
@@ -103,7 +103,7 @@ namespace frameflow {
 
         // Layout children
         for (NodeId child_id: node.children) {
-            Node &c = get_node(sys, child_id);
+            Node &c = *get_node(sys, child_id);
 
             resolve_anchors(c, node);
 
@@ -131,14 +131,14 @@ namespace frameflow {
         }
     }
 
-    static void layout_flow(System &sys, const Node &node, const FlowData &data) {
+    static void layout_flow(System *sys, const Node &node, const FlowData &data) {
         if (node.children.empty()) return;
 
         float2 offset = node.bounds.origin;
         float cross_line = 0.f;
 
         for (NodeId child_id: node.children) {
-            Node &child = get_node(sys, child_id);
+            Node &child = *get_node(sys, child_id);
 
             resolve_anchors(child, node);
 
@@ -176,93 +176,93 @@ namespace frameflow {
         }
     }
 
-    NodeId add_generic(System &sys, const NodeId parent) {
+    NodeId add_generic(System *sys, const NodeId parent) {
         // 1. Add component data
         // NA
 
         // 2. Add node
-        const auto id = static_cast<NodeId>(sys.nodes.size());
+        const auto id = static_cast<NodeId>(sys->nodes.size());
         Node node;
         node.type = NodeType::Generic;
         node.bounds = {}; // default
         node.minimum_size = {};
         node.parent = parent;
-        sys.nodes.push_back(node);
+        sys->nodes.push_back(node);
 
         // 3. Link to parent
         if (parent != NullNode) {
-            sys.nodes[parent].children.push_back(id);
+            sys->nodes[parent].children.push_back(id);
         }
 
         return id;
     }
 
-    NodeId add_center(System &sys, const NodeId parent) {
+    NodeId add_center(System *sys, const NodeId parent) {
         // 1. Add component data
 
         // 2. Add node
-        const auto id = static_cast<NodeId>(sys.nodes.size());
+        const auto id = static_cast<NodeId>(sys->nodes.size());
         Node node;
         node.type = NodeType::Center;
         node.bounds = {}; // default
         node.minimum_size = {};
         node.parent = parent;
-        sys.nodes.push_back(node);
+        sys->nodes.push_back(node);
 
         // 3. Link to parent
         if (parent != NullNode) {
-            sys.nodes[parent].children.push_back(id);
+            sys->nodes[parent].children.push_back(id);
         }
 
         return id;
     }
 
-    NodeId add_box(System &sys, const NodeId parent, const BoxData &data) {
+    NodeId add_box(System *sys, const NodeId parent, const BoxData &data) {
         // 1. Add component data
-        const size_t comp_idx = sys.components.boxes.size();
-        sys.components.boxes.push_back(data);
+        const size_t comp_idx = sys->components.boxes.size();
+        sys->components.boxes.push_back(data);
 
         // 2. Add node
-        const auto id = static_cast<NodeId>(sys.nodes.size());
+        const auto id = static_cast<NodeId>(sys->nodes.size());
         Node node;
         node.type = NodeType::Box;
         node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
         node.component_index = comp_idx;
-        sys.nodes.push_back(node);
+        sys->nodes.push_back(node);
 
         // 3. Link to parent
         if (parent != NullNode)
-            sys.nodes[parent].children.push_back(id);
+            sys->nodes[parent].children.push_back(id);
 
         return id;
     }
 
-    NodeId add_flow(System &sys, const NodeId parent, const FlowData &data) {
+    NodeId add_flow(System *sys, const NodeId parent, const FlowData &data) {
         // 1. Add component data
-        const size_t comp_idx = sys.components.flows.size();
-        sys.components.flows.push_back(data);
+        const size_t comp_idx = sys->components.flows.size();
+        sys->components.flows.push_back(data);
 
         // 2. Add node
-        const auto id = static_cast<NodeId>(sys.nodes.size());
+        const auto id = static_cast<NodeId>(sys->nodes.size());
         Node node;
         node.type = NodeType::Flow;
         node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
         node.component_index = comp_idx;
-        sys.nodes.push_back(node);
+        sys->nodes.push_back(node);
 
         // 3. Link to parent
         if (parent != NullNode)
-            sys.nodes[parent].children.push_back(id);
+            sys->nodes[parent].children.push_back(id);
 
         return id;
     }
 
-    void compute_layout(System &sys, const NodeId node_id) {
-        const Node &node = sys.nodes[node_id];
+    void compute_layout(System *sys, const NodeId node_id) {
+        const Node &node = sys->nodes[node_id];
         switch (node.type) {
             case NodeType::Generic: layout_generic(sys, node);
                 break;
@@ -270,10 +270,10 @@ namespace frameflow {
                 layout_center(sys, node);
                 break;
             case NodeType::Box:
-                layout_box(sys, node, sys.components.boxes[node.component_index]);
+                layout_box(sys, node, sys->components.boxes[node.component_index]);
                 break;
             case NodeType::Flow:
-                layout_flow(sys, node, sys.components.flows[node.component_index]);
+                layout_flow(sys, node, sys->components.flows[node.component_index]);
                 break;
             default: break;
         }
@@ -282,7 +282,10 @@ namespace frameflow {
             compute_layout(sys, child_id);
     }
 
-    Node &get_node(System &sys, const NodeId id) {
-        return sys.nodes[id];
+    // This could be a bad reference after the end of the frame.
+    // Make sure you're storing handles, and not Node references.
+    // Might be more aptly named "GetTemporaryNode"
+    Node *get_node(System *sys, const NodeId id) {
+        return &sys->nodes[id];
     }
 } // namespace frameflow
