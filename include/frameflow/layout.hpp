@@ -40,8 +40,25 @@ namespace frameflow {
         float2 size;
     };
 
-    using NodeId = uint32_t; // index into arrays
-    constexpr NodeId NullNode = UINT32_MAX;
+    // Generational index for safe node references
+    struct NodeId {
+        uint32_t index = UINT32_MAX;
+        uint32_t generation = 0;
+
+        bool operator==(const NodeId &other) const {
+            return index == other.index && generation == other.generation;
+        }
+
+        bool operator!=(const NodeId &other) const {
+            return !(*this == other);
+        }
+
+        [[nodiscard]] bool is_null() const {
+            return index == UINT32_MAX;
+        }
+    };
+
+    constexpr NodeId NullNode = {UINT32_MAX, 0};
 
     enum class NodeType : uint8_t {
         Generic,
@@ -112,6 +129,10 @@ namespace frameflow {
 
         NodeType type;
         size_t component_index = 0;
+
+        // Generation tracking
+        uint32_t generation = 0;
+        bool alive = true;
     };;
 
     // A tree root, all ancestors of root are have relative positions to this System
@@ -122,6 +143,7 @@ namespace frameflow {
         std::vector<Node> nodes;
         Components components;
         std::vector<NodeId> children;
+        std::vector<uint32_t> free_list; // Indices available for reuse
     };
 
     NodeId add_center(System *sys, NodeId parent);
@@ -133,6 +155,19 @@ namespace frameflow {
     NodeId add_flow(System *sys, NodeId parent, const FlowData &data);
 
     Node *get_node(System *sys, NodeId id);
+    const Node *get_node(const System *sys, NodeId id);
+    // add const version?
+
+    // Check if a NodeId is valid
+    bool is_valid(const System *sys, NodeId id);
+
+    // Delete a node and all its descendants
+    // Returns false if the node doesn't exist or is already deleted
+    bool delete_node(System *sys, NodeId id);
+
+    // Move a node to a new parent
+    // Returns false if either node doesn't exist or if it would create a cycle
+    bool reparent_node(System *sys, NodeId node_id, NodeId new_parent);
 
     void compute_layout(System *sys, NodeId node_id);
 } // namespace frameflow

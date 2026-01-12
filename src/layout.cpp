@@ -176,116 +176,258 @@ namespace frameflow {
         }
     }
 
-    NodeId add_generic(System *sys, const NodeId parent) {
-        // 1. Add component data
-        // NA
+    // Helper to allocate a node slot (reuses free slots or creates new)
+    static NodeId allocate_node(System *sys) {
+        uint32_t index;
+        uint32_t generation;
 
-        // 2. Add node
-        const auto id = static_cast<NodeId>(sys->nodes.size());
-        Node node;
+        if (!sys->free_list.empty()) {
+            // Reuse a freed slot
+            index = sys->free_list.back();
+            sys->free_list.pop_back();
+            generation = sys->nodes[index].generation;
+        } else {
+            // Allocate new slot
+            index = static_cast<uint32_t>(sys->nodes.size());
+            generation = 0;
+            sys->nodes.emplace_back();
+        }
+
+        return {index, generation};
+    }
+
+    NodeId add_generic(System *sys, const NodeId parent) {
+        // Validate parent
+        if (!parent.is_null() && !is_valid(sys, parent)) {
+            return NullNode;
+        }
+
+        NodeId id = allocate_node(sys);
+        Node &node = sys->nodes[id.index];
+
         node.type = NodeType::Generic;
-        node.bounds = {}; // default
+        node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
-        sys->nodes.push_back(node);
+        node.generation = id.generation;
+        node.alive = true;
+        node.children.clear();
 
-        // 3. Link to parent
-        if (parent != NullNode) {
-            sys->nodes[parent].children.push_back(id);
+        // Link to parent
+        if (!parent.is_null()) {
+            sys->nodes[parent.index].children.push_back(id);
         }
 
         return id;
     }
 
     NodeId add_center(System *sys, const NodeId parent) {
-        // 1. Add component data
+        if (!parent.is_null() && !is_valid(sys, parent)) {
+            return NullNode;
+        }
 
-        // 2. Add node
-        const auto id = static_cast<NodeId>(sys->nodes.size());
-        Node node;
+        NodeId id = allocate_node(sys);
+        Node &node = sys->nodes[id.index];
+
         node.type = NodeType::Center;
-        node.bounds = {}; // default
+        node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
-        sys->nodes.push_back(node);
+        node.generation = id.generation;
+        node.alive = true;
+        node.children.clear();
 
-        // 3. Link to parent
-        if (parent != NullNode) {
-            sys->nodes[parent].children.push_back(id);
+        if (!parent.is_null()) {
+            sys->nodes[parent.index].children.push_back(id);
         }
 
         return id;
     }
 
     NodeId add_box(System *sys, const NodeId parent, const BoxData &data) {
-        // 1. Add component data
+        if (!parent.is_null() && !is_valid(sys, parent)) {
+            return NullNode;
+        }
+
+        // Add component data
         const size_t comp_idx = sys->components.boxes.size();
         sys->components.boxes.push_back(data);
 
-        // 2. Add node
-        const auto id = static_cast<NodeId>(sys->nodes.size());
-        Node node;
+        NodeId id = allocate_node(sys);
+        Node &node = sys->nodes[id.index];
+
         node.type = NodeType::Box;
         node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
         node.component_index = comp_idx;
-        sys->nodes.push_back(node);
+        node.generation = id.generation;
+        node.alive = true;
+        node.children.clear();
 
-        // 3. Link to parent
-        if (parent != NullNode)
-            sys->nodes[parent].children.push_back(id);
+        if (!parent.is_null()) {
+            sys->nodes[parent.index].children.push_back(id);
+        }
 
         return id;
     }
 
     NodeId add_flow(System *sys, const NodeId parent, const FlowData &data) {
-        // 1. Add component data
+        if (!parent.is_null() && !is_valid(sys, parent)) {
+            return NullNode;
+        }
+
+        // Add component data
         const size_t comp_idx = sys->components.flows.size();
         sys->components.flows.push_back(data);
 
-        // 2. Add node
-        const auto id = static_cast<NodeId>(sys->nodes.size());
-        Node node;
+        NodeId id = allocate_node(sys);
+        Node &node = sys->nodes[id.index];
+
         node.type = NodeType::Flow;
         node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
         node.component_index = comp_idx;
-        sys->nodes.push_back(node);
+        node.generation = id.generation;
+        node.alive = true;
+        node.children.clear();
 
-        // 3. Link to parent
-        if (parent != NullNode)
-            sys->nodes[parent].children.push_back(id);
+        if (!parent.is_null()) {
+            sys->nodes[parent.index].children.push_back(id);
+        }
 
         return id;
     }
 
-    void compute_layout(System *sys, const NodeId node_id) {
-        const Node &node = sys->nodes[node_id];
-        switch (node.type) {
-            case NodeType::Generic: layout_generic(sys, node);
-                break;
-            case NodeType::Center:
-                layout_center(sys, node);
-                break;
-            case NodeType::Box:
-                layout_box(sys, node, sys->components.boxes[node.component_index]);
-                break;
-            case NodeType::Flow:
-                layout_flow(sys, node, sys->components.flows[node.component_index]);
-                break;
-            default: break;
+    bool is_valid(const System *sys, NodeId id) {
+        if (id.is_null()) return false;
+        if (id.index >= sys->nodes.size()) return false;
+
+        const Node &node = sys->nodes[id.index];
+        return node.alive && node.generation == id.generation;
+    }
+
+    // Helper to check if new_parent is a descendant of node_id (would create cycle)
+    static bool is_descendant(System *sys, NodeId ancestor, NodeId potential_descendant) {
+        if (ancestor == potential_descendant) return true;
+
+        Node *node = get_node(sys, ancestor);
+        if (!node) return false;
+
+        for (NodeId child_id : node->children) {
+            if (is_descendant(sys, child_id, potential_descendant)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool delete_node(System *sys, NodeId id) {
+        if (!is_valid(sys, id)) return false;
+
+        Node &node = sys->nodes[id.index];
+
+        // 1. Recursively delete all children first
+        // Make a copy since we're modifying the children vector
+        std::vector<NodeId> children_copy = node.children;
+        for (NodeId child_id : children_copy) {
+            delete_node(sys, child_id);
         }
 
-        for (const auto child_id: node.children)
-            compute_layout(sys, child_id);
+        // 2. Remove from parent's children list
+        if (!node.parent.is_null()) {
+            Node *parent = get_node(sys, node.parent);
+            if (parent) {
+                auto it = std::find(parent->children.begin(), parent->children.end(), id);
+                if (it != parent->children.end()) {
+                    parent->children.erase(it);
+                }
+            }
+        }
+
+        // 3. Mark as dead and increment generation
+        node.alive = false;
+        node.generation++;
+        node.children.clear();
+        node.parent = NullNode;
+
+        // 4. Add to free list for reuse
+        sys->free_list.push_back(id.index);
+
+        return true;
+    }
+
+    bool reparent_node(System *sys, NodeId node_id, NodeId new_parent) {
+        // Validate both nodes exist
+        if (!is_valid(sys, node_id)) return false;
+        if (!new_parent.is_null() && !is_valid(sys, new_parent)) return false;
+
+        Node &node = sys->nodes[node_id.index];
+
+        // Can't reparent to self
+        if (node_id == new_parent) return false;
+
+        // Check for cycles: new_parent can't be a descendant of node_id
+        if (!new_parent.is_null() && is_descendant(sys, node_id, new_parent)) {
+            return false;
+        }
+
+        // 1. Remove from old parent's children list
+        if (!node.parent.is_null()) {
+            Node *old_parent = get_node(sys, node.parent);
+            if (old_parent) {
+                auto it = std::find(old_parent->children.begin(), old_parent->children.end(), node_id);
+                if (it != old_parent->children.end()) {
+                    old_parent->children.erase(it);
+                }
+            }
+        }
+
+        // 2. Add to new parent's children list
+        if (!new_parent.is_null()) {
+            sys->nodes[new_parent.index].children.push_back(node_id);
+        }
+
+        // 3. Update parent reference
+        node.parent = new_parent;
+
+        return true;
     }
 
     // This could be a bad reference after the end of the frame.
     // Make sure you're storing handles, and not Node references.
     // Might be more aptly named "GetTemporaryNode"
-    Node *get_node(System *sys, const NodeId id) {
-        return &sys->nodes[id];
+    Node *get_node(System *sys, NodeId id) {
+        if (!is_valid(sys, id)) return nullptr;
+        return &sys->nodes[id.index];
+    }
+
+    const Node *get_node(const System *sys, NodeId id) {
+        if (!is_valid(sys, id)) return nullptr;
+        return &sys->nodes[id.index];
+    }
+
+    void compute_layout(System *sys, const NodeId node_id) {
+        Node *node = get_node(sys, node_id);
+        if (!node) return;
+
+        switch (node->type) {
+            case NodeType::Generic: layout_generic(sys, *node);
+                break;
+            case NodeType::Center:
+                layout_center(sys, *node);
+                break;
+            case NodeType::Box:
+                layout_box(sys, *node, sys->components.boxes[node->component_index]);
+                break;
+            case NodeType::Flow:
+                layout_flow(sys, *node, sys->components.flows[node->component_index]);
+                break;
+            default: break;
+        }
+
+        for (const auto child_id: node->children)
+            compute_layout(sys, child_id);
     }
 } // namespace frameflow

@@ -5,3 +5,4 @@ A simple, Godot-inspired rectangular layout engine.
 - Bring your own abstraction
   - We only provide the barest API. It is up to the client to make a wrapper.
 - Simple
+  - API should be self documenting

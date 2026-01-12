@@ -22,8 +22,8 @@ static SDL_Color get_type_color(NodeType type) {
 }
 
 // Draw borders recursively with color
-static void DrawBorders(SDL_Renderer *renderer, TTF_Font *font, System &canvas, NodeId node_id) {
-    Node &node = get_node(canvas, node_id);
+static void DrawBorders(SDL_Renderer *renderer, TTF_Font *font, System *canvas, NodeId node_id) {
+    Node &node = *get_node(canvas, node_id);
 
     SDL_Color color = get_type_color(node.type);
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
@@ -91,26 +91,26 @@ int main(int, char **) {
         std::cerr << "Failed to load font: " << TTF_GetError() << "\n";
     }
 
-    System canvas;
+    System *canvas = new System();
 
     const NodeId root_id = add_generic(canvas, NullNode);
-    Node &root_node = get_node(canvas, root_id);
-    get_node(canvas, root_id).minimum_size = viewport_size;
-    get_node(canvas, root_id).bounds.size = viewport_size;
+    Node &root_node = *get_node(canvas, root_id);
+    get_node(canvas, root_id)->minimum_size = viewport_size;
+    get_node(canvas, root_id)->bounds.size = viewport_size;
 
     // Center child
     const NodeId center_id = add_center(canvas, root_id);
-    get_node(canvas, center_id).anchors = {0, 0, 1, 1};
+    get_node(canvas, center_id)->anchors = {0, 0, 1, 1};
 
     // Horizontal box
     const NodeId hbox_id = add_box(canvas, center_id, BoxData{Direction::Horizontal, Align::SpaceBetween});
-    get_node(canvas, hbox_id).minimum_size = {500, 80*2};
+    get_node(canvas, hbox_id)->minimum_size = {500, 80*2};
 
     auto populate = [&](const NodeId parent, const int count, const int min, const int max) {
         for (int i = 0; i < count; ++i) {
             NodeId c = add_generic(canvas, parent);
             auto s = 100.f;
-            get_node(canvas, c).minimum_size = {s, s};
+            get_node(canvas, c)->minimum_size = {s, s};
         }
     };
     populate(hbox_id,   3, 20, 60);
@@ -129,7 +129,7 @@ int main(int, char **) {
                 std::cout<<window_width << "x"<< window_height <<std::endl;
 
                 // Update root node to new window size
-                Node &root = get_node(canvas, root_id);
+                Node &root = *get_node(canvas, root_id);
                 root.bounds.size = { float(window_width), float(window_height) };
                 //root.minimum_size = { float(window_width), float(window_height) };
                 viewport_size.x = (float)window_width;
