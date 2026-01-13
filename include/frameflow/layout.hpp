@@ -65,6 +65,7 @@ namespace frameflow {
         Center,
         Box,
         Flow,
+        Margin
         // Scroll?
         //
     };
@@ -91,9 +92,17 @@ namespace frameflow {
         Align align = Align::Start;
     };
 
+    struct MarginData {
+        float left = 0.f;
+        float right = 0.f;
+        float top = 0.f;
+        float bottom = 0.f;
+    };
+
     struct Components {
         std::vector<BoxData> boxes;
         std::vector<FlowData> flows;
+        std::vector<MarginData> margins;
     };
 
     // Anchors normalized [0..1] relative to parent

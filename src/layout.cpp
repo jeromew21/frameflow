@@ -1,6 +1,7 @@
 #include "frameflow/layout.hpp"
 
 #include <iostream>
+#include <algorithm>
 
 namespace frameflow {
     static void resolve_anchors(Node &child, const Node &parent) {
@@ -176,6 +177,43 @@ namespace frameflow {
         }
     }
 
+    static void layout_margin(System *sys, const Node &node, const MarginData &data) {
+        if (node.children.empty()) return;
+
+        // Compute inner rect
+        float2 inner_origin{
+            node.bounds.origin.x + data.left,
+            node.bounds.origin.y + data.top
+        };
+
+        float2 inner_size{
+            std::max(0.f, node.bounds.size.x - data.left - data.right),
+            std::max(0.f, node.bounds.size.y - data.top - data.bottom)
+        };
+
+        for (NodeId child_id : node.children) {
+            Node &child = *get_node(sys, child_id);
+
+            // Override parent bounds temporarily
+            Node fake_parent = node;
+            fake_parent.bounds.origin = inner_origin;
+            fake_parent.bounds.size = inner_size;
+
+            resolve_anchors(child, fake_parent);
+
+            // Apply minimum size
+            child.bounds.size.x = std::max(child.bounds.size.x, child.minimum_size.x);
+            child.bounds.size.y = std::max(child.bounds.size.y, child.minimum_size.y);
+
+            // Expand behavior
+            if (child.expand.x > 0.f)
+                child.bounds.size.x = std::max(child.bounds.size.x, inner_size.x);
+            if (child.expand.y > 0.f)
+                child.bounds.size.y = std::max(child.bounds.size.y, inner_size.y);
+        }
+    }
+
+
     // Helper to allocate a node slot (reuses free slots or creates new)
     static NodeId allocate_node(System *sys) {
         uint32_t index;
@@ -285,6 +323,33 @@ namespace frameflow {
         Node &node = sys->nodes[id.index];
 
         node.type = NodeType::Flow;
+        node.bounds = {};
+        node.minimum_size = {};
+        node.parent = parent;
+        node.component_index = comp_idx;
+        node.generation = id.generation;
+        node.alive = true;
+        node.children.clear();
+
+        if (!parent.is_null()) {
+            sys->nodes[parent.index].children.push_back(id);
+        }
+
+        return id;
+    }
+
+    NodeId add_margin(System *sys, const NodeId parent, const MarginData &data) {
+        if (!parent.is_null() && !is_valid(sys, parent)) {
+            return NullNode;
+        }
+
+        const size_t comp_idx = sys->components.margins.size();
+        sys->components.margins.push_back(data);
+
+        NodeId id = allocate_node(sys);
+        Node &node = sys->nodes[id.index];
+
+        node.type = NodeType::Margin;
         node.bounds = {};
         node.minimum_size = {};
         node.parent = parent;
@@ -423,6 +488,9 @@ namespace frameflow {
                 break;
             case NodeType::Flow:
                 layout_flow(sys, *node, sys->components.flows[node->component_index]);
+                break;
+            case NodeType::Margin:
+                layout_margin(sys, *node, sys->components.margins[node->component_index]);
                 break;
             default: break;
         }
