@@ -7,6 +7,7 @@ project(frameflow
 
 add_library(frameflow
     src/layout.cpp
+        include/frameflow/layout_pretty_print.h
 )
 
 add_library(frameflow::frameflow ALIAS frameflow)

@@ -103,7 +103,11 @@ namespace frameflow {
         std::vector<BoxData> boxes;
         std::vector<FlowData> flows;
         std::vector<MarginData> margins;
-    };
+
+        std::vector<size_t> free_boxes;
+        std::vector<size_t> free_flows;
+        std::vector<size_t> free_margins;
+    };;
 
     // Anchors normalized [0..1] relative to parent
     struct Anchors {
