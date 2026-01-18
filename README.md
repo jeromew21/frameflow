@@ -56,7 +56,7 @@ This allows safe reuse of internal storage while preventing stale references.
 Frameflow supports several built-in layout behaviors:
 
 | Type    | Description                                |
-| - |  |
+| ---- | ---- |
 | Generic | Passive container with no special behavior |
 | Center  | Centers its single child                   |
 | Box     | Linear layout (horizontal or vertical)     |
