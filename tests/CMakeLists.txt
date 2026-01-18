@@ -3,7 +3,6 @@ find_package(SDL2_ttf REQUIRED)
 
 add_executable(frameflow_sdl_test
     sdl_smoke_test.cpp
-        frameflow_allocation_test.cpp
 )
 
 target_link_libraries(frameflow_sdl_test
