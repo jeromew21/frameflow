@@ -163,6 +163,8 @@ namespace frameflow {
 
     NodeId add_flow(System *sys, NodeId parent, const FlowData &data);
 
+    NodeId add_margin(System *sys, NodeId parent, const MarginData &data);
+
     Node *get_node(System *sys, NodeId id);
     const Node *get_node(const System *sys, NodeId id);
     // add const version?
