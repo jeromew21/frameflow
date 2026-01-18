@@ -1,10 +1,7 @@
-
 # Frameflow
 
 Frameflow is a small, deterministic, rectangular layout engine inspired by Godot’s UI system.
 It is designed to be embedded inside game engines and real-time applications where you want explicit control over layout without inheriting a heavyweight widget framework.
-
----
 
 ## Goals
 
@@ -28,8 +25,6 @@ It is designed to be embedded inside game engines and real-time applications whe
 
   * Nodes form a tree.
   * Behavior is expressed through explicit node types and components.
-
----
 
 ## Core Concepts
 
@@ -56,14 +51,12 @@ struct NodeId {
 
 This allows safe reuse of internal storage while preventing stale references.
 
----
-
 ### Node Types
 
 Frameflow supports several built-in layout behaviors:
 
 | Type    | Description                                |
-| ------- | ------------------------------------------ |
+| - |  |
 | Generic | Passive container with no special behavior |
 | Center  | Centers its single child                   |
 | Box     | Linear layout (horizontal or vertical)     |
@@ -71,8 +64,6 @@ Frameflow supports several built-in layout behaviors:
 | Margin  | Adds padding around its child              |
 
 Each specialized node stores its configuration in a component pool.
-
----
 
 ### System
 
@@ -88,8 +79,6 @@ struct System {
 ```
 
 Multiple independent trees can coexist inside a single system.
-
----
 
 ## Basic Usage
 
@@ -111,8 +100,6 @@ compute_layout(&sys, root);
 
 After computation, each node’s `bounds` field contains its resolved rectangle.
 
----
-
 ### Deleting Nodes
 
 ```cpp
@@ -121,17 +108,11 @@ delete_node(&sys, item);
 
 Deletion is recursive and safe with respect to existing `NodeId` references.
 
----
-
 ### Reparenting
 
 ```cpp
 reparent_node(&sys, item, new_parent);
 ```
-
-Cycle creation is prevented.
-
----
 
 ## Philosophy
 
@@ -149,8 +130,6 @@ Cycle creation is prevented.
 
   * No external dependencies.
 
----
-
 ## Non-Goals
 
 Frameflow does not provide:
@@ -163,13 +142,9 @@ Frameflow does not provide:
 
 Those concerns belong to the host engine.
 
----
-
 ## License
 
 MIT (or your preferred permissive license)
-
----
 
 ## Status
 
