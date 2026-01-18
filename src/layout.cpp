@@ -8,8 +8,10 @@ namespace frameflow {
         // Compute rectangle from anchors + offsets
         float parent_left = parent.bounds.origin.x;
         float parent_top = parent.bounds.origin.y;
+        /*
         float parent_right = parent_left + parent.bounds.size.x;
         float parent_bottom = parent_top + parent.bounds.size.y;
+        */
 
         float x0 = parent_left + child.anchors.left * parent.bounds.size.x + child.offsets.left;
         float y0 = parent_top + child.anchors.top * parent.bounds.size.y + child.offsets.top;
@@ -191,7 +193,7 @@ namespace frameflow {
             std::max(0.f, node.bounds.size.y - data.top - data.bottom)
         };
 
-        for (NodeId child_id : node.children) {
+        for (NodeId child_id: node.children) {
             Node &child = *get_node(sys, child_id);
 
             // Override parent bounds temporarily
@@ -214,7 +216,6 @@ namespace frameflow {
     }
 
 
-    // Helper to allocate a node slot (reuses free slots or creates new)
     static NodeId allocate_node(System *sys) {
         uint32_t index;
         uint32_t generation;
@@ -224,6 +225,15 @@ namespace frameflow {
             index = sys->free_list.back();
             sys->free_list.pop_back();
             generation = sys->nodes[index].generation;
+
+            Node &node = sys->nodes[index];
+            node.bounds = {};
+            node.minimum_size = {};
+            node.expand = {0.f, 0.f};
+            node.stretch = {1.f, 1.f};
+            node.anchors = {0.f, 0.f, 0.f, 0.f};
+            node.offsets = {0.f, 0.f, 0.f, 0.f};
+            node.children.clear();
         } else {
             // Allocate new slot
             index = static_cast<uint32_t>(sys->nodes.size());
@@ -287,9 +297,16 @@ namespace frameflow {
             return NullNode;
         }
 
-        // Add component data
-        const size_t comp_idx = sys->components.boxes.size();
-        sys->components.boxes.push_back(data);
+        // Reuse or allocate component slot
+        size_t comp_idx;
+        if (!sys->components.free_boxes.empty()) {
+            comp_idx = sys->components.free_boxes.back();
+            sys->components.free_boxes.pop_back();
+            sys->components.boxes[comp_idx] = data; // Overwrite old data
+        } else {
+            comp_idx = sys->components.boxes.size();
+            sys->components.boxes.push_back(data);
+        }
 
         NodeId id = allocate_node(sys);
         Node &node = sys->nodes[id.index];
@@ -315,9 +332,15 @@ namespace frameflow {
             return NullNode;
         }
 
-        // Add component data
-        const size_t comp_idx = sys->components.flows.size();
-        sys->components.flows.push_back(data);
+        size_t comp_idx;
+        if (!sys->components.free_flows.empty()) {
+            comp_idx = sys->components.free_flows.back();
+            sys->components.free_flows.pop_back();
+            sys->components.flows[comp_idx] = data;
+        } else {
+            comp_idx = sys->components.flows.size();
+            sys->components.flows.push_back(data);
+        }
 
         NodeId id = allocate_node(sys);
         Node &node = sys->nodes[id.index];
@@ -343,8 +366,15 @@ namespace frameflow {
             return NullNode;
         }
 
-        const size_t comp_idx = sys->components.margins.size();
-        sys->components.margins.push_back(data);
+        size_t comp_idx;
+        if (!sys->components.free_margins.empty()) {
+            comp_idx = sys->components.free_margins.back();
+            sys->components.free_margins.pop_back();
+            sys->components.margins[comp_idx] = data;
+        } else {
+            comp_idx = sys->components.margins.size();
+            sys->components.margins.push_back(data);
+        }
 
         NodeId id = allocate_node(sys);
         Node &node = sys->nodes[id.index];
@@ -380,7 +410,7 @@ namespace frameflow {
         Node *node = get_node(sys, ancestor);
         if (!node) return false;
 
-        for (NodeId child_id : node->children) {
+        for (NodeId child_id: node->children) {
             if (is_descendant(sys, child_id, potential_descendant)) {
                 return true;
             }
@@ -394,13 +424,27 @@ namespace frameflow {
         Node &node = sys->nodes[id.index];
 
         // 1. Recursively delete all children first
-        // Make a copy since we're modifying the children vector
         std::vector<NodeId> children_copy = node.children;
         for (NodeId child_id : children_copy) {
             delete_node(sys, child_id);
         }
 
-        // 2. Remove from parent's children list
+        // 2. Free component data if this node has any
+        switch (node.type) {
+            case NodeType::Box:
+                sys->components.free_boxes.push_back(node.component_index);
+                break;
+            case NodeType::Flow:
+                sys->components.free_flows.push_back(node.component_index);
+                break;
+            case NodeType::Margin:
+                sys->components.free_margins.push_back(node.component_index);
+                break;
+            default:
+                break;
+        }
+
+        // 3. Remove from parent's children list
         if (!node.parent.is_null()) {
             Node *parent = get_node(sys, node.parent);
             if (parent) {
@@ -411,13 +455,13 @@ namespace frameflow {
             }
         }
 
-        // 3. Mark as dead and increment generation
+        // 4. Mark as dead and increment generation
         node.alive = false;
         node.generation++;
         node.children.clear();
         node.parent = NullNode;
 
-        // 4. Add to free list for reuse
+        // 5. Add to free list for reuse
         sys->free_list.push_back(id.index);
 
         return true;
