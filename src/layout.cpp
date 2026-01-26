@@ -90,7 +90,7 @@ namespace frameflow {
         float cursor = (data.direction == Direction::Horizontal ? node.bounds.origin.x : node.bounds.origin.y);
         float spacing = 0.f;
 
-        float content_size = total_main + leftover; // for SpaceBetween, spacing will overwrite
+        //float content_size = total_main + leftover; // for SpaceBetween, spacing will overwrite
         size_t child_count = node.children.size();
 
         switch (data.align) {
