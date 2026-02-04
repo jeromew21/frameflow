@@ -13,6 +13,7 @@ There are some undocumented quirks in the layout system, but I am using it in my
 ## Future plans
 * Re-write in C so bindings can be more easily generated
 * Refactor into a header-only library.
+* Add split containers
 
 ## Goals
 
