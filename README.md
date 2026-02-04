@@ -6,7 +6,7 @@ It is designed to be embedded inside game engines and real-time applications whe
 Note: this is a mostly AI-generated project. 
 I designed and guided the API, but a majority of the internal logic and this readme are AI generated.
 
-I wanted to factor out this into a library since 1) it has an explicit purpose and problem it's trying to solve and 2) requires *zero* external dependencies.
+I wanted to factor out this into a library since it 1) has an explicit purpose and problem it's trying to solve and 2) requires *zero* external dependencies.
 
 There are some undocumented quirks in the layout system, but I am using it in my 2D game with no issues so far.
 
