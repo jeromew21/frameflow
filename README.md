@@ -8,7 +8,7 @@ I designed and guided the API, but most of the internal logic and most of this r
 
 I wanted to factor out this into a library since it has a very clear standalone purpose without any outside dependencies.
 
-Future plans are to re-write this in C so bindings can be more easily generated for it in other languages.
+Future plans are to re-write this in C so bindings can be more easily generated for it in other languages, and/or refactor into a header-only library.
 
 There are some undocumented quirks in the layout system, but I am using it in my 2D game with no issues so far.
 
