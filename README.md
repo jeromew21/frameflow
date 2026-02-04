@@ -3,7 +3,14 @@
 Frameflow is a small, deterministic, rectangular layout engine inspired by Godot’s UI system.
 It is designed to be embedded inside game engines and real-time applications where you want explicit control over layout without inheriting a heavyweight widget framework.
 
-Note: this is a mostly AI-generated project. I guided the API design, but most of the interal logic and this readme are AI generated.
+Note: this is a mostly AI-generated project. 
+I designed and guided the API, but most of the internal logic and most of this readme are AI generated.
+
+I wanted to factor out this into a library since it has a very clear standalone purpose without any outside dependencies.
+
+Future plans are to re-write this in C so bindings can be more easily generated for it in other languages.
+
+There are some undocumented quirks in the layout system, but I am using it in my 2D game with no issues so far.
 
 ## Goals
 
@@ -147,8 +154,3 @@ Those concerns belong to the host engine.
 ## License
 
 MIT
-
-## Status
-
-Frameflow is intended for engine and tooling use where deterministic, lightweight UI layout is required.
-The API is small and stable, and the internal design favors clarity over cleverness.
